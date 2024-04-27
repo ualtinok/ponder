@@ -140,7 +140,7 @@ export const buildEntityTypes = ({
           } else {
             const type = isEnumColumn(column)
               ? enumTypes[column.type]
-              : SCALARS[column.type];
+              : SCALARS[columnName === "id" ? "ID" : column.type];
             if (column.list) {
               const listType = new GraphQLList(new GraphQLNonNull(type));
               fieldConfigMap[columnName] = {

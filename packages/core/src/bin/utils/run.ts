@@ -52,6 +52,7 @@ export async function run({
     schema,
     graphqlSchema,
     indexingFunctions,
+    liveQueryStore,
   } = build;
 
   let database: DatabaseService;
@@ -96,7 +97,12 @@ export async function run({
     }),
   };
 
-  const server = await createServer({ common, graphqlSchema, indexingStore });
+  const server = await createServer({
+    common,
+    graphqlSchema,
+    indexingStore,
+    liveQueryStore,
+  });
 
   // This can be a long-running operation, so it's best to do it after
   // starting the server so the app can become responsive more quickly.
@@ -228,6 +234,7 @@ export async function run({
         schema,
         namespaceInfo,
         db: database.indexingDb,
+        liveQueryStore,
       }),
     };
 

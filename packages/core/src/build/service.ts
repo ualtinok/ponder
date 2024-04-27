@@ -7,6 +7,7 @@ import type { Network } from "@/config/networks.js";
 import type { EventSource } from "@/config/sources.js";
 import type { Schema } from "@/schema/types.js";
 import { buildGraphqlSchema } from "@/server/graphql/buildGraphqlSchema.js";
+import { InMemoryLiveQueryStore } from "@n1ru4l/in-memory-live-query-store";
 import { glob } from "glob";
 import type { GraphQLSchema } from "graphql";
 import { type ViteDevServer, createServer } from "vite";
@@ -47,6 +48,7 @@ export type Build = {
   graphqlSchema: GraphQLSchema;
   // Indexing functions
   indexingFunctions: IndexingFunctions;
+  liveQueryStore: InMemoryLiveQueryStore;
 };
 
 export type BuildResult =
@@ -412,6 +414,12 @@ const validateAndBuild = async (
     common.logger[log.level]({ service: "build", msg: log.msg });
   }
 
+  const liveQueryStore = new InMemoryLiveQueryStore({
+    validateThrottleValue: () => {
+      return null;
+    },
+  });
+
   return {
     status: "success",
     build: {
@@ -423,6 +431,7 @@ const validateAndBuild = async (
       graphqlSchema,
       indexingFunctions:
         buildConfigAndIndexingFunctionsResult.indexingFunctions,
+      liveQueryStore,
     },
   };
 };

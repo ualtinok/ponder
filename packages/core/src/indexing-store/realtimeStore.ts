@@ -1,6 +1,7 @@
 import type { HeadlessKysely } from "@/database/kysely.js";
 import type { NamespaceInfo } from "@/database/service.js";
 import type { Schema } from "@/schema/types.js";
+import type { InMemoryLiveQueryStore } from "@n1ru4l/in-memory-live-query-store";
 import type { Row, WhereInput, WriteIndexingStore } from "./store.js";
 import { decodeRow, encodeRow, encodeValue } from "./utils/encoding.js";
 import { parseStoreError } from "./utils/errors.js";
@@ -13,11 +14,13 @@ export const getRealtimeIndexingStore = ({
   schema,
   namespaceInfo,
   db,
+  liveQueryStore,
 }: {
   kind: "sqlite" | "postgres";
   schema: Schema;
   namespaceInfo: NamespaceInfo;
   db: HeadlessKysely<any>;
+  liveQueryStore?: InMemoryLiveQueryStore;
 }): WriteIndexingStore<"realtime"> => ({
   create: ({
     tableName,
@@ -31,11 +34,11 @@ export const getRealtimeIndexingStore = ({
     data?: Omit<Row, "id">;
   }) => {
     const table = schema.tables[tableName];
-
+    const invalidations: string[] = [];
     return db.wrap({ method: `${tableName}.create` }, async () => {
       const createRow = encodeRow({ id, ...data }, table, kind);
 
-      return await db.transaction().execute(async (tx) => {
+      const txResult = await db.transaction().execute(async (tx) => {
         const row = await tx
           .withSchema(namespaceInfo.userNamespace)
           .insertInto(tableName)
@@ -56,8 +59,24 @@ export const getRealtimeIndexingStore = ({
           })
           .execute();
 
+        if (liveQueryStore) {
+          invalidations.push(`${tableName}:${id}`);
+          invalidations.push(
+            `Query.${
+              tableName.charAt(0).toLowerCase() + tableName.slice(1)
+            }(id: "${id}")`,
+          );
+          invalidations.push(
+            `Query.${tableName.charAt(0).toLowerCase() + tableName.slice(1)}s`,
+          );
+        }
         return decodeRow(row, table, kind);
       });
+
+      if (liveQueryStore && invalidations.length > 0) {
+        await liveQueryStore.invalidate(invalidations);
+      }
+      return txResult;
     });
   },
   createMany: ({
@@ -122,7 +141,7 @@ export const getRealtimeIndexingStore = ({
       | ((args: { current: Row }) => Partial<Omit<Row, "id">>);
   }) => {
     const table = schema.tables[tableName];
-
+    const invalidations: string[] = [];
     return db.wrap({ method: `${tableName}.update` }, async () => {
       const encodedId = encodeValue(id, table.id, kind);
 
@@ -164,11 +183,24 @@ export const getRealtimeIndexingStore = ({
           })
           .execute();
 
+        if (liveQueryStore) {
+          invalidations.push(`${tableName}:${id}`);
+          invalidations.push(
+            `Query.${
+              tableName.charAt(0).toLowerCase() + tableName.slice(1)
+            }(id: "${id}")`,
+          );
+          invalidations.push(
+            `Query.${tableName.charAt(0).toLowerCase() + tableName.slice(1)}s`,
+          );
+        }
         return updateResult;
       });
 
       const result = decodeRow(row, table, kind);
-
+      if (liveQueryStore && invalidations.length > 0) {
+        await liveQueryStore.invalidate(invalidations);
+      }
       return result;
     });
   },

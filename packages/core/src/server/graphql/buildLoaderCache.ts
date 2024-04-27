@@ -20,7 +20,7 @@ export function buildLoaderCache({ store }: { store: ReadIndexingStore }) {
 
         return ids.map((id) => rows.items.find((row) => row.id === id));
       },
-      { maxBatchSize: 1_000 },
+      { maxBatchSize: 1_000, cache: false },
     ));
 
     return loader;

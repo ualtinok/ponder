@@ -46,7 +46,7 @@ export const buildEntityFilterTypes = ({
 
           const type = isEnumColumn(column)
             ? enumTypes[column.type]
-            : SCALARS[column.type];
+            : SCALARS[columnName === "id" ? "ID" : column.type];
 
           if (column.list) {
             // List fields => universal, plural

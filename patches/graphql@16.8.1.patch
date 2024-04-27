@@ -1,3 +1,29 @@
 diff --git a/index.mjs b/index.mjs
 deleted file mode 100644
 index ba8672e675b69675b8d37d3aa521ee2298eacdcc..0000000000000000000000000000000000000000
+diff --git a/type/scalars.js b/type/scalars.js
+index da041113d8614814bf39cc7399fad42281e7bd01..f5d416a52a0348ecbdddb450dc8304f99cdd98d3 100644
+--- a/type/scalars.js
++++ b/type/scalars.js
+@@ -294,7 +294,7 @@ const GraphQLID = new _definition.GraphQLScalarType({
+       return coercedValue;
+     }
+
+-    if (Number.isInteger(coercedValue)) {
++    if (Number.isInteger(coercedValue) || typeof coercedValue === 'bigint') {
+       return String(coercedValue);
+     }
+
+diff --git a/type/scalars.mjs b/type/scalars.mjs
+index 3aa154aa2f47cea8799aadf769b21078991904b2..f7d6fc4b05035da7f22b84a74ab564a84b6a3157 100644
+--- a/type/scalars.mjs
++++ b/type/scalars.mjs
+@@ -242,7 +242,7 @@ export const GraphQLID = new GraphQLScalarType({
+       return coercedValue;
+     }
+
+-    if (Number.isInteger(coercedValue)) {
++    if (Number.isInteger(coercedValue) || typeof coercedValue === 'bigint') {
+       return String(coercedValue);
+     }
+

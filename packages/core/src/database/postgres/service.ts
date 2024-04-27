@@ -658,4 +658,5 @@ const scalarToSqlType = {
   string: "text",
   bigint: "numeric(78, 0)",
   hex: "bytea",
+  ID: "text",
 } as const;

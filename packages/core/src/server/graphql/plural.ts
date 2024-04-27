@@ -1,3 +1,4 @@
+import { SCALARS } from "@/server/graphql/scalar.js";
 import {
   type GraphQLFieldConfig,
   type GraphQLFieldResolver,
@@ -54,7 +55,7 @@ export const buildPluralField = ({
   return {
     type: new GraphQLNonNull(entityPageType),
     args: {
-      where: { type: entityFilterType },
+      where: { type: SCALARS.ID },
       orderBy: { type: GraphQLString },
       orderDirection: { type: GraphQLString },
       before: { type: GraphQLString },

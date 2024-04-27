@@ -39,7 +39,7 @@ export const buildSingularField = ({
   return {
     type: entityType,
     args: {
-      id: { type: new GraphQLNonNull(SCALARS[table.id.type]) },
+      id: { type: new GraphQLNonNull(SCALARS.ID) },
     },
     resolve: resolver,
   };

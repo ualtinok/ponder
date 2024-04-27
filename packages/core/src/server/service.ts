@@ -1,12 +1,17 @@
 import http from "node:http";
 import type { Common } from "@/common/common.js";
 import type { ReadIndexingStore } from "@/indexing-store/store.js";
-import { graphiQLHtml } from "@/ui/graphiql.html.js";
-import { graphqlServer } from "@hono/graphql-server";
+import { useLiveQuery } from "@envelop/live-query";
+import { useGraphQLSSE } from "@graphql-yoga/plugin-graphql-sse";
 import { serve } from "@hono/node-server";
+import { applyLiveQueryJSONDiffPatchGenerator } from "@n1ru4l/graphql-live-query-patch-jsondiffpatch";
+import type { InMemoryLiveQueryStore } from "@n1ru4l/in-memory-live-query-store";
 import { GraphQLError, type GraphQLSchema } from "graphql";
+import { createYoga } from "graphql-yoga";
+import { type YogaServerOptions } from "graphql-yoga";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { createMiddleware } from "hono/factory";
 import { createHttpTerminator } from "http-terminator";
 import {
   type GetLoader,
@@ -24,14 +29,65 @@ export async function createServer({
   graphqlSchema,
   indexingStore,
   common,
+  liveQueryStore,
 }: {
   graphqlSchema: GraphQLSchema;
   indexingStore: ReadIndexingStore;
   common: Common;
+  liveQueryStore?: InMemoryLiveQueryStore;
 }): Promise<Server> {
   const hono = new Hono<{
     Variables: { store: ReadIndexingStore; getLoader: GetLoader };
   }>();
+
+  const getLoader = buildLoaderCache({ store: indexingStore });
+
+  const yogaOptions: YogaServerOptions<any, any> = {
+    schema: graphqlSchema,
+    graphiql: true,
+  };
+  if (liveQueryStore) {
+    common.logger.info({
+      service: "server",
+      msg: "Using live queries.",
+    });
+    yogaOptions.plugins = [
+      useGraphQLSSE(),
+      useLiveQuery({
+        liveQueryStore,
+        applyLiveQueryPatchGenerator: applyLiveQueryJSONDiffPatchGenerator,
+      }),
+    ];
+  }
+  const yoga = createYoga(yogaOptions);
+
+  const withYoga = createMiddleware(async (c) => {
+    if (!isHealthy) {
+      c.status(503);
+      return c.json({
+        data: undefined,
+        errors: [new GraphQLError("Historical indexing in not complete")],
+      });
+    }
+    c.set("store", indexingStore);
+    c.set("getLoader", getLoader);
+    const response = await yoga.fetch(
+      c.req.url,
+      {
+        method: c.req.method,
+        headers: c.req.header(),
+        body: c.req.raw.body,
+      },
+      c,
+    );
+
+    const headersObj = Object.fromEntries(response.headers.entries());
+
+    return c.body(response.body, {
+      status: response.status,
+      headers: headersObj,
+    });
+  });
 
   let port = common.options.port;
   let isHealthy = false;
@@ -68,45 +124,9 @@ export async function createServer({
       c.status(503);
       return c.text("Historical indexing is not complete.");
     })
-    .use("/graphql", async (c, next) => {
-      if (isHealthy === false) {
-        c.status(503);
-        return c.json({
-          data: undefined,
-          errors: [new GraphQLError("Historical indexing in not complete")],
-        });
-      }
-
-      if (c.req.method === "POST") {
-        const getLoader = buildLoaderCache({ store: indexingStore });
-
-        c.set("store", indexingStore);
-        c.set("getLoader", getLoader);
-
-        return graphqlServer({
-          schema: graphqlSchema,
-        })(c);
-      }
-      return next();
-    })
-    .get("/graphql", (c) => {
-      return c.html(graphiQLHtml);
-    })
-    .use("/", async (c, next) => {
-      if (c.req.method === "POST") {
-        const getLoader = buildLoaderCache({ store: indexingStore });
-
-        c.set("store", indexingStore);
-        c.set("getLoader", getLoader);
-
-        return graphqlServer({
-          schema: graphqlSchema,
-        })(c);
-      }
-      return next();
-    })
+    .use("/graphql", withYoga)
     .get("/", (c) => {
-      return c.html(graphiQLHtml);
+      return c.redirect("/graphql");
     });
 
   const createServerWithNextAvailablePort: typeof http.createServer = (

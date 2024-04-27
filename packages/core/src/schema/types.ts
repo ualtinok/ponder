@@ -2,7 +2,14 @@ import type { Hex } from "viem";
 
 import type { Prettify } from "@/types/utils.js";
 
-export type Scalar = "string" | "int" | "float" | "boolean" | "hex" | "bigint";
+export type Scalar =
+  | "ID"
+  | "string"
+  | "int"
+  | "float"
+  | "boolean"
+  | "hex"
+  | "bigint";
 
 export type ID = "string" | "int" | "bigint" | "hex";
 

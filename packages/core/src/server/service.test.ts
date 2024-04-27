@@ -243,22 +243,49 @@ test("graphql extra filter", async (context) => {
     }),
   });
 
-  expect(response.status).toBe(400);
+  expect(response.status).toBe(200);
+  expect(await response.json()).toMatchObject({
+    errors: [
+      {
+        message: 'Unknown argument "doesntExist" on field "Query.table".',
+        locations: [{ line: 3, column: 24 }],
+      },
+    ],
+  });
 
   await cleanup();
 });
 
 test("graphql interactive", async (context) => {
+  const schema = createSchema((p) => ({
+    table: p.createTable({
+      id: p.string(),
+    }),
+  }));
+
+  const { indexingStore, cleanup } = await setupDatabaseServices(context, {
+    schema,
+  });
+
+  await indexingStore.create({
+    tableName: "table",
+    encodedCheckpoint: encodeCheckpoint(zeroCheckpoint),
+    id: "0",
+  });
+
+  const graphqlSchema = buildGraphqlSchema(schema);
+
   const server = await createServer({
-    graphqlSchema: {} as GraphQLSchema,
+    graphqlSchema,
     common: context.common,
-    indexingStore: {} as IndexingStore,
+    indexingStore,
   });
   server.setHealthy();
 
   const response = await server.hono.request("/graphql");
 
   expect(response.status).toBe(200);
+  await cleanup();
 });
 
 test("missing route", async (context) => {

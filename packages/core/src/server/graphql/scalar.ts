@@ -2,6 +2,7 @@ import type { Scalar } from "@/schema/types.js";
 import {
   GraphQLBoolean,
   GraphQLFloat,
+  GraphQLID,
   GraphQLInt,
   GraphQLScalarType,
   GraphQLString,
@@ -29,4 +30,5 @@ export const SCALARS: { [type in Scalar]: GraphQLScalarType } = {
   boolean: GraphQLBoolean,
   bigint: GraphQLBigInt,
   hex: GraphQLString,
+  ID: GraphQLID,
 };

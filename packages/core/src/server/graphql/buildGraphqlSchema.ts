@@ -4,7 +4,10 @@ import {
   type GraphQLFieldConfig,
   GraphQLObjectType,
   GraphQLSchema,
+  specifiedDirectives,
 } from "graphql";
+
+import { GraphQLLiveDirective } from "@envelop/live-query";
 import { type Context as HonoContext } from "hono";
 import type { GetLoader } from "./buildLoaderCache.js";
 import { buildEntityTypes } from "./entity.js";
@@ -62,5 +65,9 @@ export const buildGraphqlSchema = (schema: Schema): GraphQLSchema => {
       name: "Query",
       fields: queryFields,
     }),
+    directives: [
+      GraphQLLiveDirective,
+      /* Keep @defer/@stream/@if/@skip */ ...specifiedDirectives,
+    ],
   });
 };

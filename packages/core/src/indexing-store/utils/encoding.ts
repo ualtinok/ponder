@@ -18,6 +18,7 @@ const scalarToTsType = {
   boolean: "boolean",
   string: "string",
   hex: "`0x${string}`",
+  ID: "string",
 } as const satisfies { [key in Scalar]: string };
 
 /**
@@ -127,6 +128,9 @@ export function encodeValue(
       }
       return value;
     } else if (column.type === "bigint") {
+      if (typeof value === "string") {
+        value = BigInt(value);
+      }
       if (typeof value !== "bigint") {
         throw new StoreError(
           `Unable to encode ${value} as a bigint. Got type '${typeof value}' but expected type 'bigint'.`,
