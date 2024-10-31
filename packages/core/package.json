@@ -1,6 +1,6 @@
 {
   "name": "@ismeth/pondercore",
-  "version": "0.6.22",
+  "version": "0.6.23",
   "description": "An open-source framework for crypto application backends",
   "license": "MIT",
   "type": "module",
