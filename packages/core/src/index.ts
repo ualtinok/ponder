@@ -25,6 +25,27 @@ export type BlockConfig = Prettify<Config["blocks"][string]>;
 export type DatabaseConfig = Prettify<Config["database"]>;
 
 export { graphql } from "@/graphql/index.js";
+export type { MetadataStore, ReadonlyStore } from "@/indexing-store/store.js";
+export { BuildError } from "@/common/errors.js";
+export type {
+  Schema,
+  ReferenceColumn,
+  Scalar,
+  Table,
+} from "@/schema/common.js";
+export {
+  getEnums,
+  extractReferenceTable,
+  getTables,
+  isEnumColumn,
+  isJSONColumn,
+  isListColumn,
+  isManyColumn,
+  isOneColumn,
+  isScalarColumn,
+  isReferenceColumn,
+  isOptionalColumn,
+} from "@/schema/utils.js";
 
 export {
   sql,
